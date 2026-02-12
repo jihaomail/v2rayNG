@@ -45,37 +45,46 @@ jobs:
         env:
           GRADLE_OPTS: -Dorg.gradle.jvmargs="-Xmx4096m"
 
-      # 第 5 步：重命名 APK 文件（添加时间戳）
-      - name: List & Rename APKs
+      - name: Collect APKs into flat folder
         run: |
           set -euxo pipefail
+          cd "${{ github.workspace }}/V2rayNG"
 
-          echo "== Find release APKs =="
-          find V2rayNG/app/build/outputs/apk -type f -path "*/release/*.apk" -print || true
+          rm -rf out_apk
+          mkdir -p out_apk
 
-          ts="$(date +%Y%m%d-%H%M%S)"
+          # 把所有 release 的 APK 找出来复制到 out_apk（扁平化）
+          find app/build/outputs/apk -type f -path "*/release/*.apk" -print
 
-          # 对每一个 release apk：取它的父目录名作为“标签”
-          # 例如 .../apk/playstore/release/app-release.apk -> tag=playstore
-          #      .../apk/fdroid/release/app-release.apk   -> tag=fdroid
-          while IFS= read -r f; do
-            release_dir="$(dirname "$f")"          # .../release
-            tag_dir="$(basename "$(dirname "$release_dir")")"  # release 的上一级，比如 playstore/fdroid/xxx
-            new="${release_dir}/v2rayng-${tag_dir}-${ts}.apk"
-            mv "$f" "$new"
-            echo "Renamed: $new"
-          done < <(find V2rayNG/app/build/outputs/apk -type f -path "*/release/*.apk")
+          # arm64-v8a
+          a64="$(find app/build/outputs/apk -type f -path "*/release/*.apk" -iname "*arm64-v8a*.apk" | head -n 1 || true)"
+          if [ -n "${a64}" ]; then
+            cp -v "${a64}" "out_apk/v2rayng-arm64-v8a.apk"
+          fi
 
+          # armeabi-v7a
+          v7="$(find app/build/outputs/apk -type f -path "*/release/*.apk" -iname "*armeabi-v7a*.apk" | head -n 1 || true)"
+          if [ -n "${v7}" ]; then
+            cp -v "${v7}" "out_apk/v2rayng-armeabi-v7a.apk"
+          fi
 
-      # 第 6 步：上传 APK 到 Artifacts（保存 30 天）
-      - name: Upload Release APKs
+          echo "== out_apk =="
+          ls -lh out_apk
+
+      - name: Verify output files exist
+        run: |
+          set -euxo pipefail
+          test -f "${{ github.workspace }}/V2rayNG/out_apk/v2rayng-arm64-v8a.apk"
+          test -f "${{ github.workspace }}/V2rayNG/out_apk/v2rayng-armeabi-v7a.apk"
+
+      - name: Upload APKs
         uses: actions/upload-artifact@v4
-        if: ${{ success() }}
         with:
           name: apks
-          path: ${{ github.workspace }}/V2rayNG/app/build/outputs/apk/**/release/*.apk
+          path: ${{ github.workspace }}/V2rayNG/out_apk/*.apk
           retention-days: 30
           if-no-files-found: error
+
 
 
       # 第 7 步：显示编译摘要
