@@ -31,6 +31,13 @@ jobs:
       run: chmod +x gradlew
       working-directory: ./V2rayNG
     
+    - name: Download libv2ray.aar
+      run: |
+        mkdir -p app/libs
+        curl -L "https://github.com/jihaomail/v2rayNG/releases/download/libv2ray-1/libv2ray.aar" -o app/libs/libv2ray.aar
+        ls -lh app/libs/libv2ray.aar
+      working-directory: ./V2rayNG
+      
     # 第 4 步：编译 Release 版本的 APK
     - name: Build Release APK
       run: ./gradlew assembleRelease --stacktrace
