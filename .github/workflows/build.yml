@@ -49,42 +49,34 @@ jobs:
       - name: List & Rename APKs
         run: |
           set -euxo pipefail
-          echo "== List all APK outputs =="
-          find V2rayNG/app/build/outputs/apk -type f -name "*.apk" -print || true
 
-          echo "== Rename all release APKs (keep dirs) =="
+          echo "== Find release APKs =="
+          find V2rayNG/app/build/outputs/apk -type f -path "*/release/*.apk" -print || true
+
           ts="$(date +%Y%m%d-%H%M%S)"
-          i=0
+
+          # 对每一个 release apk：取它的父目录名作为“标签”
+          # 例如 .../apk/playstore/release/app-release.apk -> tag=playstore
+          #      .../apk/fdroid/release/app-release.apk   -> tag=fdroid
           while IFS= read -r f; do
-            i=$((i+1))
-            dir="$(dirname "$f")"
-            base="$(basename "$f")"
-            new="${dir}/v2rayNG-custom-${ts}-${i}-${base}"
+            release_dir="$(dirname "$f")"          # .../release
+            tag_dir="$(basename "$(dirname "$release_dir")")"  # release 的上一级，比如 playstore/fdroid/xxx
+            new="${release_dir}/v2rayng-${tag_dir}-${ts}.apk"
             mv "$f" "$new"
             echo "Renamed: $new"
           done < <(find V2rayNG/app/build/outputs/apk -type f -path "*/release/*.apk")
 
-          echo "== After rename =="
-          find V2rayNG/app/build/outputs/apk -type f -name "*.apk" -print
 
       # 第 6 步：上传 APK 到 Artifacts（保存 30 天）
-      - name: Upload arm64-v8a APK
+      - name: Upload Release APKs
         uses: actions/upload-artifact@v4
         if: ${{ success() }}
         with:
-          name: arm64-v8a
-          path: "${{ github.workspace }}/V2rayNG/app/build/outputs/apk/*/release/*arm64-v8a*.apk"
+          name: apks
+          path: ${{ github.workspace }}/V2rayNG/app/build/outputs/apk/**/release/*.apk
           retention-days: 30
           if-no-files-found: error
 
-      - name: Upload armeabi-v7a APK
-        uses: actions/upload-artifact@v4
-        if: ${{ success() }}
-        with:
-          name: armeabi-v7a
-          path: "${{ github.workspace }}/V2rayNG/app/build/outputs/apk/*/release/*armeabi-v7a*.apk"
-          retention-days: 30
-          if-no-files-found: error
 
       # 第 7 步：显示编译摘要
       - name: Build Summary
