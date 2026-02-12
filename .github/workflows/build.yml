@@ -40,7 +40,7 @@ jobs:
 
       # 第 4 步：编译 Release 版本的 APK
       - name: Build Release APK
-        run: ./gradlew assembleRelease --stacktrace
+        run: ./gradlew assembleDebug --stacktrace
         working-directory: ./V2rayNG
         env:
           GRADLE_OPTS: -Dorg.gradle.jvmargs="-Xmx4096m"
