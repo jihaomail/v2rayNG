@@ -46,21 +46,34 @@ jobs:
         GRADLE_OPTS: -Dorg.gradle.jvmargs="-Xmx4096m"
     
     # 第 5 步：重命名 APK 文件（添加时间戳）
-    - name: Rename APK
+    - name: List & Rename APKs
       run: |
-        cd V2rayNG/app/build/outputs/apk/release
-        for file in *.apk; do
-          new_name="v2rayNG-custom-$(date +%Y%m%d-%H%M%S).apk"
-          mv "$file" "$new_name"
-          echo "Renamed to: $new_name"
-        done
+        set -euxo pipefail
+        echo "== List all APK outputs =="
+        find V2rayNG/app/build/outputs/apk -type f -name "*.apk" -print || true
+
+        echo "== Rename all release APKs (keep dirs) =="
+        ts="$(date +%Y%m%d-%H%M%S)"
+        i=0
+        while IFS= read -r f; do
+          i=$((i+1))
+          dir="$(dirname "$f")"
+          base="$(basename "$f")"
+          new="${dir}/v2rayNG-custom-${ts}-${i}-${base}"
+          mv "$f" "$new"
+          echo "Renamed: $new"
+        done < <(find V2rayNG/app/build/outputs/apk -type f -path "*/release/*.apk")
+
+        echo "== After rename =="
+        find V2rayNG/app/build/outputs/apk -type f -name "*.apk" -print
+
     
     # 第 6 步：上传 APK 到 Artifacts（保存 30 天）
     - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
       with:
         name: v2rayNG-custom-apk
-        path: V2rayNG/app/build/outputs/apk/release/*.apk
+        path: ${{ github.workspace }}/V2rayNG/app/build/outputs/apk/*/release/*.apk
         retention-days: 30
         if-no-files-found: error
     
