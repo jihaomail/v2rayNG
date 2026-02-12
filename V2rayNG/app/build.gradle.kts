@@ -15,6 +15,18 @@ android {
         versionCode = 709
         versionName = "2.0.9"
         multiDexEnabled = true
+        
+        ndk {
+        abiFilters += setOf("armeabi-v7a", "arm64-v8a")
+        }
+    splits {
+        abi {
+        isEnable = true
+        reset()
+        include("armeabi-v7a", "arm64-v8a")
+        isUniversalApk = false
+       }
+      }
 
         val abiFilterList = (properties["ABI_FILTERS"] as? String)?.split(';')
         splits {
